@@ -80,3 +80,13 @@ plt.xlabel('Predicted')
 plt.ylabel('Actual')
 plt.title('Fraud Detection Confusion Matrix')
 plt.show()
+
+import joblib
+
+# Save the model to a file
+joblib.dump(rf, 'fraud_model.pkl') 
+
+# Save the scaler too (crucial for new data!)
+joblib.dump(rob_scaler, 'scaler.pkl')
+
+print("Model and Scaler saved successfully!")
