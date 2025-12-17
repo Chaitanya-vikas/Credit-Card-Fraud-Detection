@@ -17,59 +17,55 @@ model, scaler = load_assets()
 
 # 2. App Title
 st.title("🛡️ Financial Fraud Detection System")
-st.write("This app predicts the probability of a transaction being fraudulent.")
+st.write("Adjust the transaction details to see if the model flags it as **Fraud**.")
 
 if model is None:
     st.error("🚨 Error: Model files not found.")
     st.stop()
 
 # 3. Sidebar Inputs
-st.sidebar.header("Transaction Simulation")
-scenario = st.sidebar.selectbox("Select Scenario:", ["Legitimate Transaction", "Suspicious Transaction (Fraud Test)"])
+st.sidebar.header("Transaction Details")
 
-# Default legitimate values
-time_val = 40000
-amount_val = 120.0
-v4_val = 0.0
-v14_val = 0.0
+# Standard Inputs
+time_val = st.sidebar.number_input("Time (Secs)", min_value=0, value=40000)
+amount_val = st.sidebar.number_input("Amount ($)", min_value=0.0, value=120.0)
 
-# If user chooses "Fraud Test", we pre-fill with data from an actual fraud case in the dataset
-if scenario == "Suspicious Transaction (Fraud Test)":
-    st.sidebar.warning("⚠️ Simulating specific fraud pattern (High V4, Low V14)")
-    time_val = 406.0         # Example fraud time
-    amount_val = 500.0       # Higher amount
-    v4_val = 6.0             # High outlier (typical of fraud)
-    v14_val = -8.0           # Low outlier (typical of fraud)
-else:
-    # Allow manual adjustment for normal testing
-    amount_val = st.sidebar.number_input("Transaction Amount ($)", min_value=0.0, value=120.0)
-    time_val = st.sidebar.number_input("Time (Secs)", min_value=0, value=40000)
+st.sidebar.markdown("---")
+st.sidebar.subheader("🕵️ Fraud Signal Injection")
+st.sidebar.caption("Adjust these hidden features (V4 & V14) to simulate suspicious behavior.")
+
+# SLIDERS: This is the fix. Allow user to change the "V" features manually.
+# Normal range is usually -3 to 3. Fraud is often > 5 or < -5.
+v4_val = st.sidebar.slider("V4 (High = Suspicious)", min_value=-10.0, max_value=15.0, value=0.0)
+v14_val = st.sidebar.slider("V14 (Low = Suspicious)", min_value=-20.0, max_value=5.0, value=0.0)
 
 # 4. Predict Button
 if st.button("Analyze Transaction"):
     
     # --- DATA PREPARATION ---
-    # 1. Create a dictionary with default values (0.0 represents the average)
+    # 1. Start with average values (0.0) for all 28 features
     input_data = {f'V{i}': 0.0 for i in range(1, 29)}
     
-    # 2. Inject the "Fraud Signals" (V4 and V14 are the most important features in this dataset)
+    # 2. Overwrite with User Inputs from Sliders
     input_data['V4'] = v4_val
     input_data['V14'] = v14_val
     
-    # 3. Handle Scaling
+    # 3. Handle Scaling for Time/Amount
     try:
         scaled_amount = scaler.transform([[amount_val]])[0][0]
         scaled_time = scaler.transform([[time_val]])[0][0]
     except:
+        # Fallback manual scaling
         scaled_amount = (amount_val - 88.0) / 71.0
         scaled_time = (time_val - 84000.0) / 85000.0
     
     input_data['scaled_amount'] = scaled_amount
     input_data['scaled_time'] = scaled_time
     
-    # 4. Convert to DataFrame and align columns
+    # 4. Convert to DataFrame
     raw_df = pd.DataFrame([input_data])
     
+    # Auto-align columns to match model training
     if hasattr(model, 'feature_names_in_'):
         try:
             final_df = raw_df[model.feature_names_in_]
@@ -85,11 +81,9 @@ if st.button("Analyze Transaction"):
     
     st.subheader("Analysis Result")
     
-    # Display the inputs used so the user understands WHY it happened
-    st.caption(f"Inputs used: Amount=${amount_val}, V4={v4_val}, V14={v14_val}")
-    
     if prediction[0] == 1:
-        st.error(f"🚨 FRAUD DETECTED! (Risk: {probability[0][1]:.2%})")
-        st.markdown("**Reasoning:** The model detected abnormal patterns in `V14` and `V4`, typical of stolen card usage.")
+        st.error(f"🚨 FRAUD DETECTED! (Probability: {probability[0][1]:.2%})")
+        st.write("Reasoning: High 'V4' and Low 'V14' values are strong indicators of credit card theft.")
     else:
-        st.success(f"✅ Transaction Legitimate (Safety: {probability[0][0]:.2%})")
+        st.success(f"✅ Legitimate Transaction (Safety: {probability[0][0]:.2%})")
+        st.info("Tip: Try moving the 'V14' slider to -10 or lower to trigger a fraud alert.")
