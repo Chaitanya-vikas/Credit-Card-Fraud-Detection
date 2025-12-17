@@ -83,7 +83,7 @@ if st.button("Analyze Transaction"):
     
     # If the probability of fraud (index 1) is greater than 10% (0.10)
     if probability[0][1] > 0.10: 
-    st.error(f"🚨 FRAUD DETECTED! (Risk: {probability[0][1]:.2%})")
+        st.error(f"🚨 FRAUD DETECTED! (Risk: {probability[0][1]:.2%})")
 
     else:
         st.success(f"✅ Legitimate Transaction (Safety: {probability[0][0]:.2%})")
