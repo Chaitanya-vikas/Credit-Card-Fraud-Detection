@@ -81,9 +81,10 @@ if st.button("Analyze Transaction"):
     
     st.subheader("Analysis Result")
     
-    if prediction[0] == 1:
-        st.error(f"🚨 FRAUD DETECTED! (Probability: {probability[0][1]:.2%})")
-        st.write("Reasoning: High 'V4' and Low 'V14' values are strong indicators of credit card theft.")
+    # If the probability of fraud (index 1) is greater than 10% (0.10)
+    if probability[0][1] > 0.10: 
+    st.error(f"🚨 FRAUD DETECTED! (Risk: {probability[0][1]:.2%})")
+
     else:
         st.success(f"✅ Legitimate Transaction (Safety: {probability[0][0]:.2%})")
         st.info("Tip: Try moving the 'V14' slider to -10 or lower to trigger a fraud alert.")
